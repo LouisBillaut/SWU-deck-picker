@@ -10,25 +10,55 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 });
 
 function openDecksTab(callback) {
+    // First, get cached decks and send them immediately
+    chrome.storage.local.get(['cachedDecks'], function(result) {
+        if (result.cachedDecks) {
+            callback({
+                decks: result.cachedDecks,
+                fromCache: true
+            });
+        }
+    });
+
+    // Then fetch new decks
     chrome.tabs.create({ url: "https://swudb.com/decks/", active: false }, function(tab) {
         const tabId = tab.id;
 
-        // Wait 2 seconds for content to load
         setTimeout(() => {
             chrome.scripting.executeScript({
                 target: { tabId: tabId },
                 func: scrapeDecksFromPage
             }, (results) => {
-                chrome.tabs.remove(tabId); // close the tab
+                chrome.tabs.remove(tabId);
                 if (chrome.runtime.lastError) {
                     console.error(chrome.runtime.lastError.message);
-                    callback([]);
+                    callback({
+                        decks: [],
+                        fromCache: false
+                    });
                 } else {
-                    callback(results[0].result || []);
+                    const newDecks = results[0].result || [];
+                    // Store the new decks in cache
+                    chrome.storage.local.set({
+                        cachedDecks: newDecks,
+                        lastUpdate: Date.now()
+                    }, () => {
+                        // Notify all open popups about the new data
+                        chrome.runtime.sendMessage({
+                            type: "decksUpdated",
+                            decks: newDecks
+                        });
+
+                        callback({
+                            decks: newDecks,
+                            fromCache: false
+                        });
+                    });
                 }
             });
         }, 2000);
     });
+
 }
 
 function scrapeDecksFromPage() {

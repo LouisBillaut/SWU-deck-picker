@@ -1,13 +1,20 @@
 document.addEventListener("DOMContentLoaded", () => {
     const loginBtn = document.getElementById("login-btn");
+    const reloadBtn = document.getElementById("reload-btn");
     const deckList = document.getElementById("deck-list");
 
     chrome.cookies.get({ url: "https://swudb.com", name: ".AspNetCore.Identity.Application" }, (cookie) => {
         if (!cookie) {
             loginBtn.style.display = "block";
+            reloadBtn.style.display = "none";
             deckList.innerHTML = "";
         } else {
             loginBtn.style.display = "none";
+            chrome.storage.local.get(['cachedDecks'], function(result) {
+                if (result.cachedDecks) {
+                    reloadBtn.style.display = "block";
+                }
+            });
             loadDecks();
         }
     });
@@ -15,12 +22,30 @@ document.addEventListener("DOMContentLoaded", () => {
     loginBtn.onclick = () => {
         chrome.tabs.create({ url: "https://swudb.com/account/login" });
     };
+
+    reloadBtn.onclick = () => {
+        performReload();
+    };
 });
 
+function performReload() {
+    const reloadBtn = document.getElementById("reload-btn");
+    reloadBtn.disabled = true;
+    reloadBtn.textContent = "Updating...";
+    chrome.runtime.sendMessage("fetchDecks", response => {
+        if (!response.fromCache) {
+            reloadBtn.disabled = false;
+            reloadBtn.textContent = "Reload decks";
+        }
+    });
+}
 
 function loadDecks() {
-    chrome.runtime.sendMessage("fetchDecks", (decks) => {
-        const deckList = document.getElementById("deck-list");
+    const deckList = document.getElementById("deck-list");
+    const reloadBtn = document.getElementById("reload-btn");
+
+    function displayDecks(decks, isFromCache) {
+        // Clear existing decks
         deckList.innerHTML = "";
 
         if (decks.length === 0) {
@@ -32,13 +57,11 @@ function loadDecks() {
             const button = document.createElement("button");
             button.className = "deck";
 
-            // Create container for images and title
             const container = document.createElement("div");
             container.style.display = "flex";
             container.style.alignItems = "center";
             container.style.gap = "10px";
 
-            // Add leader image if exists
             if (deck.leaderImage) {
                 const leaderImg = document.createElement("img");
                 leaderImg.src = deck.leaderImage;
@@ -48,7 +71,6 @@ function loadDecks() {
                 container.appendChild(leaderImg);
             }
 
-            // Add base image if exists
             if (deck.baseImage) {
                 const baseImg = document.createElement("img");
                 baseImg.src = deck.baseImage;
@@ -58,22 +80,47 @@ function loadDecks() {
                 container.appendChild(baseImg);
             }
 
-            // Add deck title
             const title = document.createElement("span");
             title.textContent = deck.baseTitle;
             title.style.flex = "1";
             container.appendChild(title);
 
-            // Add click handler to copy deck URL
             button.onclick = () => {
                 const fullUrl = `https://swudb.com${deck.href}`;
                 navigator.clipboard.writeText(fullUrl).then(() => {
-                    alert("Deck link copied to clipboard!");
+                    button.classList.add('copying');
+                    setTimeout(() => {
+                        button.classList.remove('copying');
+                    }, 1000);
                 });
             };
 
             button.appendChild(container);
             deckList.appendChild(button);
         });
+
+        if (isFromCache) {
+            reloadBtn.style.display = "block";
+        }
+    }
+
+    // Listen for updates from background script
+    chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+        if (message.type === "decksUpdated") {
+            displayDecks(message.decks, false);
+            reloadBtn.disabled = false;
+            reloadBtn.textContent = "Reload decks";
+        }
+    });
+
+    // Initial load from cache only
+    chrome.storage.local.get(['cachedDecks'], function(result) {
+        if (result.cachedDecks) {
+            displayDecks(result.cachedDecks, true);
+        } else {
+            // If no decks in cache, automatic reload
+            reloadBtn.style.display = "block";
+            performReload();
+        }
     });
 }
