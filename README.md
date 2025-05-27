@@ -7,11 +7,11 @@
 ## 📥 Installation Guide
 
 ### Manual Installation (Developer Mode)
-1. Download or clone this repository
-2. Open Chrome and go to `chrome://extensions/`
-3. Enable "Developer mode" in the top right corner
-4. Click "Load unpacked"
-5. Select the extension folder
+1. Download `swudb-decks-picker.zip` from last release
+2. Unzip the file to a folder on your computer
+3. Open Chrome and navigate to `chrome://extensions/`
+4. Enable "Developer mode" (top right corner)
+5. Click "Load unpacked" and select the unzipped folder
 
 ## 🎯 Features
 
