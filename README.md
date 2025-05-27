@@ -2,7 +2,7 @@
 
 > View and copy your SWUDB decks with ease! 📋✨
 
-<img src="medias/how-to-use.gif" alt="Description of the GIF" width="600"/>
+![How to use](medias/how-to-use.gif)
 
 ## 📥 Installation Guide
 
