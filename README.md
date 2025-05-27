@@ -12,6 +12,7 @@
 3. Open Chrome and navigate to `chrome://extensions/`
 4. Enable "Developer mode" (top right corner)
 5. Click "Load unpacked" and select the unzipped folder
+6. Pin extension to access it any time !
 
 ## 🎯 Features
 
@@ -24,8 +25,6 @@
 1. Click the extension icon in your browser
 2. Log in to your SWUDB account (if not already logged in)
 3. View your decks and click to copy
-
-[Screenshot placeholder showing the extension in use]
 
 ## 🔒 Privacy
 
